@@ -3,9 +3,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
 
 import MainNavigator from "./navigation/MainNavigator";
+import AuthNavigator from "./navigation/AuthNavigator";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function RootNavigator() {
-  return <MainNavigator />;
+  const { isAuthenticated } = useAuth();
+
+  return isAuthenticated ? <MainNavigator /> : <AuthNavigator />;
 }
 
 export default function App() {
@@ -21,7 +25,9 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <RootNavigator />
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </NavigationContainer>
   );
 }

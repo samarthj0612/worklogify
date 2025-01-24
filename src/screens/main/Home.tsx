@@ -1,10 +1,16 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../../context/AuthContext";
 
 const HomeScreen = () => {
+  const { logout } = useAuth();
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to the App!</Text>
+      <TouchableOpacity style={styles.button} onPress={logout}>
+        <Text style={styles.buttonText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 };
