@@ -7,20 +7,26 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+
 import { useAuth } from "../../context/AuthContext";
 
 const Login = ({ navigation }: any) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("samarth@gmail.com");
+  const [password, setPassword] = useState("123456");
+  const [error, setError] = useState("");
   const { login } = useAuth();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (email === "" || password === "") {
       Alert.alert("Error", "Please fill in all fields.");
-    } else {
-      console.log("Login Details:", { email, password });
-      login();
+      return;
+    }
+
+    try {
+      await login(email, password);
       Alert.alert("Success", "You have logged in!");
+    } catch (error: any) {
+      setError(error.message || "An error occurred during login.");
     }
   };
 
@@ -44,6 +50,7 @@ const Login = ({ navigation }: any) => {
         value={password}
         onChangeText={setPassword}
       />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <TouchableOpacity
         style={[styles.button, !isFormValid && styles.buttonDisabled]}
         onPress={handleLogin}
@@ -103,6 +110,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: "center",
     fontSize: 16,
+  },
+  error: {
+    color: "red",
+    marginVertical: 8,
+    textAlign: "right",
   },
 });
 

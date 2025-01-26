@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
 import { useAuth } from "../../context/AuthContext";
 
 const HomeScreen = () => {

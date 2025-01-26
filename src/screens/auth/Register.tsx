@@ -3,34 +3,44 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   Alert,
   TouchableOpacity,
 } from "react-native";
 
+import { useAuth } from "../../context/AuthContext";
+
 const Register = ({ navigation }: any) => {
-  // State for form fields
   const [form, setForm] = useState({
     name: "",
     phone: "",
     email: "",
     password: "",
   });
+  const { register } = useAuth();
 
-  // Handler for input changes
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Form submission handler
-  const handleRegister = () => {
-    if (Object.values(form).some((field) => field === "")) {
+  const handleRegister = async () => {
+    const { name, phone, email, password } = form;
+
+    if (!name || !phone || !email || !password) {
       Alert.alert("Error", "Please fill all the fields.");
-    } else {
-      console.log("Form Data:", form);
+      return;
+    }
+
+    try {
+      await register(email, password, { name, phone });
       Alert.alert("Success", "Registration complete!");
-      navigation.navigate("Login");
+      navigation.navigate("login");
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      Alert.alert(
+        "Error",
+        error.message || "An error occurred during registration."
+      );
     }
   };
 
@@ -57,6 +67,7 @@ const Register = ({ navigation }: any) => {
         placeholder="Email"
         keyboardType="email-address"
         value={form.email}
+        autoCapitalize="none"
         onChangeText={(value) => handleChange("email", value)}
       />
       <TextInput
