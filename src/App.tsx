@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
+import { Platform, SafeAreaView, StyleSheet } from "react-native";
 
 import MainNavigator from "./navigation/MainNavigator";
 import AuthNavigator from "./navigation/AuthNavigator";
@@ -34,8 +36,18 @@ export default function App() {
   return (
     <NavigationContainer>
       <AuthProvider>
-        <RootNavigator />
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </SafeAreaView>
       </AuthProvider>
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 36 : 0,
+  },
+})

@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
 
 const ProfileScreen = () => {
-  const { user, fetchUserDetails } = useAuth();
+  const { user, fetchUserDetails, logout } = useAuth();
 
   useEffect(() => {
     if (!user) {
@@ -22,6 +22,9 @@ const ProfileScreen = () => {
       <Text>Name: {user.name}</Text>
       <Text>Email: {user.email}</Text>
       <Text>Phone: {user.phone}</Text>
+      <TouchableOpacity style={styles.button} onPress={logout}>
+        <Text style={styles.buttonText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -44,5 +47,17 @@ const styles = StyleSheet.create({
   loading: {
     flex: 1,
     justifyContent: "center",
+  },
+  button: {
+    marginTop: 24,
+    backgroundColor: "#ff4d4f",
+    padding: 8,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+  },
+
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
