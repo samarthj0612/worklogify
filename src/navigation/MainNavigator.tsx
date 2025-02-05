@@ -3,6 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 import HomeScreen from "../screens/main/Home";
+import LogsScreen from "../screens/main/Logs";
 import ProfileScreen from "../screens/main/Profile";
 
 const Tab = createBottomTabNavigator();
@@ -17,6 +18,7 @@ const MainNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap: { [key: string]: string } = {
             Home: focused ? "home" : "home",
+            Logs: focused ? "format-list-bulleted" : "format-list-bulleted",
             Profile: focused ? "person" : "person-outline",
           };
 
@@ -35,6 +37,7 @@ const MainNavigator = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Logs" component={LogsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

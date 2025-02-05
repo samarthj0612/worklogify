@@ -8,10 +8,11 @@ import {
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
 import { auth, db } from "../firebase/config";
+import { UserSchema } from "../types";
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any;
+  user: UserSchema | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
@@ -65,6 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const userId = userCredential.user.uid;
 
       await setDoc(doc(db, "users", userId), {
+        id: userId,
         email,
         createdAt: new Date().toISOString(),
         ...additionalData,
