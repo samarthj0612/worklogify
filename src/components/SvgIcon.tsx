@@ -1,7 +1,11 @@
 import React from "react";
 import { SvgProps } from "react-native-svg";
 
-const iconMap = {};
+import Menu from "../assets/svgs/Menu";
+
+const iconMap = {
+  menu: Menu,
+};
 
 interface IconProps extends SvgProps {
   name: keyof typeof iconMap;

@@ -2,7 +2,7 @@ import React from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-import HomeScreen from "../screens/main/Home";
+import HomeNavigator from "./HomeNavigator";
 import TasksScreen from "../screens/main/Tasks";
 import LogsScreen from "../screens/main/Logs";
 import ProfileScreen from "../screens/main/Profile";
@@ -18,7 +18,7 @@ const MainNavigator = () => {
         tabBarLabelStyle: { fontSize: 12 },
         tabBarIcon: ({ focused, color, size }) => {
           const iconMap: { [key: string]: string } = {
-            Home: focused ? "home" : "home",
+            HomeStack: focused ? "home" : "home",
             Tasks: focused ? "task-alt" : "task-alt",
             Logs: focused ? "format-list-bulleted" : "format-list-bulleted",
             Profile: focused ? "person" : "person-outline",
@@ -38,7 +38,7 @@ const MainNavigator = () => {
         tabBarInactiveTintColor: "#777",
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="HomeStack" component={HomeNavigator} />
       <Tab.Screen name="Tasks" component={TasksScreen} />
       <Tab.Screen name="Logs" component={LogsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
