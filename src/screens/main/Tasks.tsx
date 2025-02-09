@@ -19,6 +19,7 @@ import CustomModal from "../../components/CustomModal";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../firebase/config";
 import { TaskSchema } from "../../types";
+import { createActivityLog } from "../../utils/activity";
 
 const TasksScreen = () => {
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
@@ -53,7 +54,7 @@ const TasksScreen = () => {
         } as TaskSchema;
       });
 
-      if(fetchedTasks.length){
+      if(fetchedTasks){
         setTasks(fetchedTasks);
       }
       setIsLoading(false);
@@ -90,8 +91,9 @@ const TasksScreen = () => {
 
       setTasks([docData, ...tasks])
       setIsLoading(false);
-      clearFields();      
+      clearFields();
       Alert.alert("Task added successfully with ID:", docRef.id);
+      createActivityLog("Added task with ID: " + docRef.id, "add-task", user.id );
     } catch (error) {
       console.error("Error adding task: ", error);
       setError("Something went wrong");
@@ -111,6 +113,9 @@ const TasksScreen = () => {
                 task.id === taskId ? { ...task, status: !isCompleted } : task
             )
         );
+      if(user && user.id){
+        createActivityLog("Updated status of task with ID: " + taskId, "list-status", user.id );
+      }
     } catch (error) {
         console.error("Error updating task status:", error);
     } finally {

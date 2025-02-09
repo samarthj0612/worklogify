@@ -19,3 +19,10 @@ export interface LogSchema{
   date: string,
   logs: string[]
 }
+
+export interface ActivitySchema{
+  activity: string,
+  type: string,
+  userId: string,
+  createdAt: string
+}

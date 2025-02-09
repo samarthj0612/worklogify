@@ -19,6 +19,8 @@ import { db } from "../../firebase/config";
 
 import Divider from "../../components/Divider";
 import CustomModal from "../../components/CustomModal";
+import { createActivityLog } from "../../utils/activity";
+import { useAuth } from "../../context/AuthContext";
 
 const LogsScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,8 @@ const LogsScreen = () => {
   const [logs, setLogs] = useState<LogSchema[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [comment, setComment] = useState<string>("");
+
+  const { user } = useAuth();
   
   const fetchLogs = async () => {
     setIsLoading(true);
@@ -73,11 +77,16 @@ const LogsScreen = () => {
   }
 
   const handleAddLog = async () => {
-    setIsLoading(true);
     if (!comment.trim()) {
       setError("Comment cannot be empty.");
       return;
     }
+
+    if (!user || !user.id) {
+      setError("User details missing");
+      return;
+    }
+    setIsLoading(true);
     
     const formattedDate = moment(selectedDate).format("DD-MM-YYYY");
     const logRef = doc(db, "logs", formattedDate);
@@ -102,6 +111,7 @@ const LogsScreen = () => {
       
       fetchLogs();
       clearFields();
+      createActivityLog("Added log for " + formattedDate, "add-log", user.id );
     } catch (error) {
       console.error("Error adding log:", error);
       setError("Failed to add log. Try again.");
