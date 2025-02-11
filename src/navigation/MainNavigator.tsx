@@ -38,7 +38,7 @@ const MainNavigator = () => {
         tabBarInactiveTintColor: "#777",
       })}
     >
-      <Tab.Screen name="HomeStack" component={HomeNavigator} />
+      <Tab.Screen name="HomeStack" component={HomeNavigator} options={{ title: "Home" }} />
       <Tab.Screen name="Tasks" component={TasksScreen} />
       <Tab.Screen name="Logs" component={LogsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />

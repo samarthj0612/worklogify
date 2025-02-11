@@ -3,6 +3,7 @@ export interface UserSchema{
   name: string,
   email: string,
   phone: string,
+  role: string,
   createdAt: string
 }
 

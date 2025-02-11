@@ -106,11 +106,18 @@ const HomeScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={() => console.log("Menu pressed")}>
           <SvgIcon name="menu" size={28} />
         </TouchableOpacity>
-        <Image
-          style={styles.profileImage}
-          source={ProfileImage}
-          resizeMode="cover"
-        />
+        <View style={styles.flexBetween}>
+          {user && user.role && user.role === "ADMIN" ? (
+            <TouchableOpacity onPress={() => navigation.navigate("Dev")}>
+              <MaterialIcons name="build" size={28} />
+            </TouchableOpacity>
+          ) : null}
+          <Image
+            style={styles.profileImage}
+            source={ProfileImage}
+            resizeMode="cover"
+          />
+        </View>
       </View>
 
       <View style={{ alignItems: "flex-start" }}>
@@ -134,15 +141,28 @@ const HomeScreen = ({ navigation }: any) => {
           <View style={[styles.carousalTile, { backgroundColor: "#F9E9C8" }]}>
             <View style={styles.flexBetween}>
               <Entypo name="suitcase" size={24} color="#000" />
-              <Feather name="arrow-up-right" onPress={() => navigation.navigate("Tasks")} size={24} color="#000" />
+              <Feather
+                name="arrow-up-right"
+                onPress={() => navigation.navigate("Tasks")}
+                size={24}
+                color="#000"
+              />
             </View>
             <Text style={{ fontSize: 32 }}>Tasks</Text>
             <Text style={{ fontSize: 16, fontWeight: "bold" }}>
               {`Pending: ${tasksCount.pending}\nCompleted: ${tasksCount.completed}`}
             </Text>
             <View style={styles.flexBetween}>
-              <Progress.Bar progress={tasksCount.pending ? tasksCount.completed/tasksCount.total : 1} width={200} color="#000" />
-              { tasksCount.pending ? (
+              <Progress.Bar
+                progress={
+                  tasksCount.pending
+                    ? tasksCount.completed / tasksCount.total
+                    : 1
+                }
+                width={200}
+                color="#000"
+              />
+              {tasksCount.pending ? (
                 <MaterialIcons name="pending-actions" size={24} color="#000" />
               ) : (
                 <MaterialIcons name="check-circle" size={24} color="#000" />
@@ -239,6 +259,7 @@ const styles = StyleSheet.create({
     width: 40,
     borderWidth: 1,
     borderColor: "black",
+    marginStart: 20,
     borderRadius: 20,
     overflow: "hidden",
   },
