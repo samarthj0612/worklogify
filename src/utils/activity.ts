@@ -1,14 +1,18 @@
-import { addDoc, collection, getDocs, query, setDoc, where } from "firebase/firestore"
+import { useQuery } from "@tanstack/react-query";
+import { addDoc, collection, getDocs, orderBy, query, setDoc, where } from "firebase/firestore"
+
 import { db } from "../firebase/config"
 import { ActivitySchema } from "../types";
 
-export const fetchActivityLogs = async (userId: string) => {
+const fetchActivityLogs = async (userId: string): Promise<ActivitySchema[]> => {
+  if(!userId) return [];
+
   try {
     const activitiesRef = collection(db, "activities");
-    const q = query(activitiesRef, where("userId", "==", userId));
+    const q = query(activitiesRef, where("userId", "==", userId), orderBy("createdAt", "desc"));
 
     const querySnapshot = await getDocs(q);
-    const fetchedActivities = querySnapshot.docs.map(doc => {
+    const fetchedActivities:ActivitySchema[] = querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -24,6 +28,17 @@ export const fetchActivityLogs = async (userId: string) => {
     console.error("Error fetching activities:", error);
     return [];
   }
+};
+
+export const useActivityLogs = (userId: string | undefined) => {
+  return useQuery<ActivitySchema[]>({
+    initialData: [],
+    queryKey: ["activities", userId],
+    queryFn: () => fetchActivityLogs(userId ?? ""),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  })
 };
 
 export const createActivityLog = async (activity: string, type: string, userId: string) => {

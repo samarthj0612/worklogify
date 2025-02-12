@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import * as Progress from "react-native-progress";
 import {
   ActivityIndicator,
@@ -19,6 +19,7 @@ import {
   SimpleLineIcons,
 } from "@expo/vector-icons";
 import moment from "moment";
+import { useQuery } from "@tanstack/react-query";
 import { collection, getCountFromServer, query, where } from "firebase/firestore";
 
 import SvgIcon from "../../components/SvgIcon";
@@ -26,31 +27,16 @@ import Divider from "../../components/Divider";
 import ProfileImage from "../../assets/images/samarth-jain.jpg";
 
 import { db } from "../../firebase/config";
-import { ActivitySchema } from "../../types";
 import { useAuth } from "../../context/AuthContext";
-import { fetchActivityLogs } from "../../utils/activity";
+import { useActivityLogs } from "../../utils/activity";
 
 const HomeScreen = ({ navigation }: any) => {
   const { user, fetchUserDetails } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activities, setActivities] = useState<ActivitySchema[]>([]);
-  const [tasksCount, setTasksCount] = useState({
-    total: 0,
-    pending: 0,
-    completed: 0,
-  })
+  const { data: activities, isLoading: isActivitiesLoading, refetch } = useActivityLogs(user?.id);
 
-  const fetchActivities = async () => {
-    if (!user || !user.id) return;
-    setIsLoading(true);
-    const res = await fetchActivityLogs(user.id);
-    if (res) {
-      setActivities(res);
-    }
-    setIsLoading(false);
-  };
+  const fetchTasksCount = async (userId: any) => {
+    if (!userId) return { total: 0, pending: 0, completed: 0 };
 
-  const fetchTasksCount = async (userId: string) => {
     try {
       const totalSnapshot = await getCountFromServer(
         query(collection(db, "tasks"), where("userId", "==", userId))
@@ -63,18 +49,25 @@ const HomeScreen = ({ navigation }: any) => {
       const completedTasks = completedSnapshot.data().count;
       const pendingTasks = totalTasks - completedTasks;
 
-      setTasksCount({ total: totalTasks, pending: pendingTasks, completed: completedTasks });
+      return { total: totalTasks, pending: pendingTasks, completed: completedTasks };
     } catch (error) {
       console.error("Error fetching task counts:", error);
+      return { total: 0, pending: 0, completed: 0 };
     }
   };
 
+  const { data: tasksCount, isLoading: isTasksLoading } = useQuery({
+    initialData: { total: 0, pending: 0, completed: 0 },
+    queryKey: ["tasksCount", user?.id],
+    queryFn: () => fetchTasksCount(user?.id),
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+
   useEffect(() => {
-    if (!user || !user.id) {
+    if (!user) {
       fetchUserDetails();
-    } else {
-      fetchTasksCount(user.id);
-      fetchActivities();
     }
   }, [user]);
 
@@ -149,25 +142,35 @@ const HomeScreen = ({ navigation }: any) => {
               />
             </View>
             <Text style={{ fontSize: 32 }}>Tasks</Text>
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-              {`Pending: ${tasksCount.pending}\nCompleted: ${tasksCount.completed}`}
-            </Text>
-            <View style={styles.flexBetween}>
-              <Progress.Bar
-                progress={
-                  tasksCount.pending
-                    ? tasksCount.completed / tasksCount.total
-                    : 1
-                }
-                width={200}
-                color="#000"
-              />
-              {tasksCount.pending ? (
-                <MaterialIcons name="pending-actions" size={24} color="#000" />
-              ) : (
-                <MaterialIcons name="check-circle" size={24} color="#000" />
-              )}
-            </View>
+            {isTasksLoading ? (
+              <ActivityIndicator size="large" />
+            ) : (
+              <>
+                <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                  {`Pending: ${tasksCount.pending}\nCompleted: ${tasksCount.completed}`}
+                </Text>
+                <View style={styles.flexBetween}>
+                  <Progress.Bar
+                    progress={
+                      tasksCount.pending
+                        ? tasksCount.completed / tasksCount.total
+                        : 1
+                    }
+                    width={200}
+                    color="#000"
+                  />
+                  {tasksCount.pending ? (
+                    <MaterialIcons
+                      name="pending-actions"
+                      size={24}
+                      color="#000"
+                    />
+                  ) : (
+                    <MaterialIcons name="check-circle" size={24} color="#000" />
+                  )}
+                </View>
+              </>
+            )}
           </View>
 
           <View style={[styles.carousalTile, { backgroundColor: "#DEECED" }]}>
@@ -202,7 +205,7 @@ const HomeScreen = ({ navigation }: any) => {
 
       <View style={styles.topBar}>
         <Text style={styles.recentActivity}>Recent Activity</Text>
-        <TouchableOpacity onPress={fetchActivities}>
+        <TouchableOpacity onPress={() => refetch()}>
           <Ionicons name="refresh" size={24} />
         </TouchableOpacity>
       </View>
@@ -224,13 +227,13 @@ const HomeScreen = ({ navigation }: any) => {
                 >
                   {getActivityIcon(e.type)}
                   <Text style={{ flex: 1, fontSize: 16 }}>{e.activity}</Text>
-                  <Text style={{ color: "grey", fontSize: 12 }}>
-                    {moment(e.createdAt).format("HH:mm")}
+                  <Text style={{ color: "grey", fontSize: 12, textAlign: "right" }}>
+                    {moment(e.createdAt).format("HH:mm DD/MM/YYYY").split(" ").join("\n")}
                   </Text>
                 </View>
               );
             })
-          : isLoading && (
+          : isActivitiesLoading && (
               <ActivityIndicator size="large" style={styles.loading} />
             )}
       </ScrollView>

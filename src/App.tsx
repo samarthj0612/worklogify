@@ -3,10 +3,13 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
 import { Platform, SafeAreaView, StyleSheet } from "react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import MainNavigator from "./navigation/MainNavigator";
 import AuthNavigator from "./navigation/AuthNavigator";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+
+const queryClient = new QueryClient();
 
 function RootNavigator() {
   const { isAuthenticated } = useAuth();
@@ -34,14 +37,16 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <AuthProvider>
-        <SafeAreaView style={styles.safeArea}>
-          <StatusBar style="auto" />
-          <RootNavigator />
-        </SafeAreaView>
-      </AuthProvider>
-    </NavigationContainer>
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer>
+        <AuthProvider>
+          <SafeAreaView style={styles.safeArea}>
+            <StatusBar style="auto" />
+            <RootNavigator />
+          </SafeAreaView>
+        </AuthProvider>
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 }
 
