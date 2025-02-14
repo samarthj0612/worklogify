@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,7 +12,7 @@ import moment from "moment";
 import { FAB, List } from "react-native-paper";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { arrayUnion, collection, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 import { LogSchema } from "../../types";
 import { db } from "../../firebase/config";
@@ -21,42 +21,48 @@ import Divider from "../../components/Divider";
 import CustomModal from "../../components/CustomModal";
 import { createActivityLog } from "../../utils/activity";
 import { useAuth } from "../../context/AuthContext";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const LogsScreen = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("")
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
-  
-  const [logs, setLogs] = useState<LogSchema[]>([]);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [comment, setComment] = useState<string>("");
 
   const { user } = useAuth();
   
   const fetchLogs = async () => {
-    setIsLoading(true);
+    if (!user?.id) return [];
+
     try {
-      const querySnapshot = await getDocs(collection(db, "logs"));
-      const fetchedLogs = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          date: data.date,
-          logs: data.logs || [],
-        } as LogSchema;
-      });
-      
-      setLogs(fetchedLogs);
+      const logRef = doc(db, "logs", user.id);
+      const docSnap = await getDoc(logRef);
+  
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const logsForUser = Object.keys(data).map((date) => ({
+          date,
+          logs: data[date] || [], // Ensure there's a default empty array for logs
+        }));
+  
+        return logsForUser;
+      } else {
+        return [];
+      }
     } catch (error) {
       console.error("Error fetching logs:", error);
-    } finally {
-      setIsLoading(false);
+      return [];
     }
   };
-  
-  useEffect(() => {
-    fetchLogs();
-  }, []);
+
+  const { data: logs, isLoading, refetch } = useQuery({
+    initialData: [],
+    queryKey: ["logs"],
+    queryFn: fetchLogs,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
   
   const openDatePicker = () => {
     DateTimePickerAndroid.open({
@@ -69,56 +75,53 @@ const LogsScreen = () => {
     });
   };
 
-  const clearFields = () => {
+  const clearFields = useCallback(() => {
     setComment("");
     setSelectedDate(new Date());
     setError("");
     setModalVisible(false);
-  }
+  }, []);
+  
 
-  const handleAddLog = async () => {
-    if (!comment.trim()) {
-      setError("Comment cannot be empty.");
-      return;
-    }
-
-    if (!user || !user.id) {
-      setError("User details missing");
-      return;
-    }
-    setIsLoading(true);
-    
-    const formattedDate = moment(selectedDate).format("DD-MM-YYYY");
-    const logRef = doc(db, "logs", formattedDate);
-    
-    try {
-      const existingLogQuery = query(
-        collection(db, "logs"),
-        where("date", "==", formattedDate)
-      );
-      const querySnapshot = await getDocs(existingLogQuery);
-      
-      if (!querySnapshot.empty) {
-        await updateDoc(logRef, {
-          logs: arrayUnion(comment),
-        });
-      } else {
-        await setDoc(logRef, {
-          date: formattedDate,
-          logs: [comment],
-        });
+  const { mutate: handleAddLog, isPending: isLogAdded } = useMutation({
+    mutationFn: async () => {
+      if (!comment.trim()) {
+        throw new Error("Comment cannot be empty.");
       }
-      
-      fetchLogs();
+    
+      if (!user || !user.id) {
+        throw new Error("User data not found");
+      }
+    
+      const formattedDate = moment(selectedDate).format("DD-MM-YYYY");
+      const logRef = doc(db, "logs", user.id);
+    
+      try {
+        const docSnap = await getDoc(logRef);
+    
+        if (docSnap.exists()) {
+          await updateDoc(logRef, {
+            [formattedDate]: arrayUnion(comment),
+          });
+        } else {
+          await setDoc(logRef, {
+            [formattedDate]: [comment],
+          });
+        }
+  
+        return { formattedDate, userId: user.id };
+      } catch (error) {
+        console.error("Error adding log:", error);
+        throw new Error("Failed to add log. Try again.");
+      }
+    },
+    onSuccess: ({ formattedDate, userId }) => {
+      refetch();
       clearFields();
-      createActivityLog("Added log for " + formattedDate, "add-log", user.id );
-    } catch (error) {
-      console.error("Error adding log:", error);
-      setError("Failed to add log. Try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      createActivityLog("Added log for " + formattedDate, "add-log", userId);
+    },
+    onError: (error) => setError(error.message),
+  });
 
   const groupLogsByMonth = (): {
     [key: string]: { date: string; logs: string[] }[];
@@ -144,7 +147,7 @@ const LogsScreen = () => {
 
       <View style={styles.topBar}>
         <Text style={styles.workLogTitle}>WorkLogs</Text>
-        <TouchableOpacity onPress={() => {}}>
+        <TouchableOpacity onPress={() => refetch()}>
           <Ionicons name="refresh" size={24} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setModalVisible(true)}>
@@ -215,10 +218,9 @@ const LogsScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={handleAddLog}
-            disabled={!comment.trim()}
+            onPress={() => handleAddLog()}
           >
-            {isLoading && <ActivityIndicator color="white" />}
+            {isLogAdded && <ActivityIndicator color="white" />}
             <Text style={styles.buttonText}>Add</Text>
           </TouchableOpacity>
         </View>
