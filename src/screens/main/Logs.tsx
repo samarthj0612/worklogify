@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,21 +7,23 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from "react-native";
 import moment from "moment";
+import { shareAsync } from "expo-sharing";
+import { printToFileAsync } from "expo-print";
 import { FAB, List } from "react-native-paper";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-import { LogSchema } from "../../types";
 import { db } from "../../firebase/config";
+import { useAuth } from "../../context/AuthContext";
 
 import Divider from "../../components/Divider";
 import CustomModal from "../../components/CustomModal";
 import { createActivityLog } from "../../utils/activity";
-import { useAuth } from "../../context/AuthContext";
-import { useMutation, useQuery } from "@tanstack/react-query";
 
 const LogsScreen = () => {
   const [error, setError] = useState<string>("")
@@ -30,7 +32,15 @@ const LogsScreen = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [comment, setComment] = useState<string>("");
 
-  const { user } = useAuth();
+  const { user, fetchUserDetails } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if(!user){
+      fetchUserDetails();
+    }
+  }, [user])
+  
   
   const fetchLogs = async () => {
     if (!user?.id) return [];
@@ -43,7 +53,7 @@ const LogsScreen = () => {
         const data = docSnap.data();
         const logsForUser = Object.keys(data).map((date) => ({
           date,
-          logs: data[date] || [], // Ensure there's a default empty array for logs
+          logs: data[date] || [],
         }));
   
         return logsForUser;
@@ -60,8 +70,6 @@ const LogsScreen = () => {
     initialData: [],
     queryKey: ["logs"],
     queryFn: fetchLogs,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
   });
   
   const openDatePicker = () => {
@@ -123,16 +131,67 @@ const LogsScreen = () => {
     onError: (error) => setError(error.message),
   });
 
+  const printToFile = async (data: {
+    [key: string]: { date: string; logs: string[] }[];
+  }, userId: string) => {
+    let content = "";
+    if (data && Object.keys(data).length) {
+      content = Object.keys(data)
+        .map(
+          (month) =>
+            `<h3>${month}</h3>` +
+            data[month]
+              .map(
+                (log) =>
+                  `<p>${log.date}</p><ul>` +
+                  log.logs.map((comment) => `<li>${comment}</li>`).join("") +
+                  "</ul>"
+              )
+              .join("")
+        )
+        .join("");
+    }
+    try {
+      const { uri } = await printToFileAsync({
+        html: `<main style="padding: 25px;">${content}</main>`,
+      });
+      Alert.alert("File has been saved to:", uri, [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Share",
+          onPress: async () => {
+            await shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+            await createActivityLog("Logs successfully exported", "export-logs", userId);
+            queryClient.invalidateQueries({ queryKey: ["activities", userId] });
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      Alert.alert("Error", "Failed to generate the PDF. Please try again.");
+    }
+  };
+
   const groupLogsByMonth = (): {
     [key: string]: { date: string; logs: string[] }[];
   } => {
-    return logs.reduce((acc: { [key: string]: LogSchema[] }, log) => {
+    return logs
+    .sort((a, b) => moment(b.date, "DD-MM-YYYY").valueOf() - moment(a.date, "DD-MM-YYYY").valueOf())
+    .reduce((acc: { [key: string]: { date: string; logs: string[] }[] }, log) => {
+      if (!moment(log.date, "DD-MM-YYYY", true).isValid()) {
+        console.warn("Invalid date:", log.date);
+        return acc; // Skip invalid dates
+      }
+
       const month = moment(log.date, "DD-MM-YYYY").format("MMMM YYYY");
       if (!acc[month]) acc[month] = [];
       acc[month].push(log);
       return acc;
     }, {});
-  };
+};
 
   const groupedLogs = groupLogsByMonth();
 
@@ -153,6 +212,11 @@ const LogsScreen = () => {
         <TouchableOpacity onPress={() => setModalVisible(true)}>
           <AntDesign name="plus" size={24} />
         </TouchableOpacity>
+        { user?.id && groupedLogs && Object.keys(groupedLogs).length ? (
+          <TouchableOpacity onPress={() => printToFile(groupedLogs, user?.id)}>
+            <AntDesign name="export" size={24} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <Divider />

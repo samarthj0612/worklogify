@@ -61,8 +61,6 @@ const HomeScreen = ({ navigation }: any) => {
     queryKey: ["tasksCount", user?.id],
     queryFn: () => fetchTasksCount(user?.id),
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
@@ -88,6 +86,8 @@ const HomeScreen = ({ navigation }: any) => {
       return <MaterialCommunityIcons name={type} size={16} />;
     } else if (type === "add-log") {
       return <MaterialIcons name={"format-list-bulleted-add"} size={16} />;
+    } else if (type === "export-logs") {
+      return <MaterialCommunityIcons name={"export-variant"} size={16} />;
     } else {
       return <Feather name="activity" size={16} />;
     }

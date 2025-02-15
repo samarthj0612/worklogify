@@ -36,8 +36,6 @@ export const useActivityLogs = (userId: string | undefined) => {
     queryKey: ["activities", userId],
     queryFn: () => fetchActivityLogs(userId ?? ""),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   })
 };
 
