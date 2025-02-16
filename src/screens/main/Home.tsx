@@ -176,7 +176,9 @@ const HomeScreen = ({ navigation }: any) => {
           <View style={[styles.carousalTile, { backgroundColor: "#DEECED" }]}>
             <View style={styles.flexBetween}>
               <Entypo name="laptop" size={24} color="#000" />
-              <Feather name="arrow-up-right" size={28} color="#000" />
+              <TouchableOpacity onPress={() => navigation.navigate("Meetings")}>
+                <Feather name="arrow-up-right" size={28} color="#000" />
+              </TouchableOpacity>
             </View>
 
             <Text style={{ fontSize: 32 }}>Upcoming meetings</Text>
